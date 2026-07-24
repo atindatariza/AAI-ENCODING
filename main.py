@@ -26,7 +26,7 @@ def safe_generate_content(model_name, img, prompt):
     model = genai.GenerativeModel(model_name)
     response = model.generate_content([prompt, img])
     return response
-def extract_encoding_gemini(image):
+def extract_dar_gemini(image):
     prompt = """
     Extract data from this survey form into a JSON list.
     For page 1 "LAS INFORMATION" section upto "OTHER NON MNTHL" and page 2 "LAS PROFILING" upto "REGISTRATION- WITH UPC" section:
@@ -56,9 +56,9 @@ if uploaded_file:
     if st.button(":mag: Run AI Scan", type="primary"):
         with st.spinner('Gemini AI is reading... ~3-5 seconds'):
             try:
-                table_data = extract_survey_gemini(image)
+                table_data = extract_dar_gemini(image)
                 if table_data:
-                    st.success(f":white_check_mark: Extracted survey data!")
+                    st.success(f":white_check_mark: Extracted dar data!")
                     st.session_state.df = pd.DataFrame(table_data)
                 else:
                     st.warning("Walang na-detect na data. Try mo mas malinaw na picture.")
