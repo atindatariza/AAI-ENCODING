@@ -12,7 +12,11 @@ st.set_page_config(page_title="DAR - Gemini AI", layout="wide")
 st.title("📝 DAR Form Scanner - Gemini AI")
 
 # Setup Gemini API
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] 
+if not GEMINI_API_KEY:
+    st.error("❌ GEMINI_API_KEY is missing! Please set it in Streamlit Secrets or Environment Variables.")
+    st.stop()  # Prevents code from hanging on GCP ADC lookup
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Google Sheets setup
