@@ -9,7 +9,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="DAR - Gemini AI", layout="wide")
-st.title(":memo: DAR Form Scanner - Gemini AI")
+st.title("📝 DAR Form Scanner - Gemini AI")
 
 # Setup Gemini API
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else os.getenv("GEMINI_API_KEY")
@@ -31,6 +31,7 @@ def get_gsheet_client():
     return client
 
 def safe_generate_content(model_name, img, prompt):
+    """Safely calls Gemini model API"""
     model = genai.GenerativeModel(model_name)
     response = model.generate_content([prompt, img])
     return response
@@ -58,10 +59,11 @@ def extract_dar_gemini(image):
     Only return valid JSON array with 1 object, no other text.
     Example: [{"LAST NAME": "AMORIN", "FIRST NAME": "RANDEL", "AGE": "46", "SMOKER": "/", "MALE": "/,1", "FEMALE": "/,1", "MB RED": "/,1", "REGISTRATION WITH UPC": "FXDHQRZ"}]
     """
+    # Updated to stable Gemini 1.5/2.0 model names
     try:
-        response = safe_generate_content("gemini-2.5-flash", image, prompt)
+        response = safe_generate_content("gemini-1.5-flash", image, prompt)
     except Exception:
-        response = safe_generate_content("gemini-2.5-flash-lite", image, prompt)
+        response = safe_generate_content("gemini-1.5-pro", image, prompt)
     
     json_text = clean_json_response(response.text)
     return json.loads(json_text)
@@ -74,22 +76,23 @@ uploaded_file = st.file_uploader("Upload DAR Photo", type=['png', 'jpg', 'jpeg']
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Ready to scan", use_column_width=True)
-    if st.button(":mag: Run AI Scan", type="primary"):
+    st.image(image, caption="Ready to scan", use_container_width=True)
+    if st.button("🔍 Run AI Scan", type="primary"):
         with st.spinner('Gemini AI is reading... ~3-5 seconds'):
             try:
                 table_data = extract_dar_gemini(image)
                 if table_data:
-                    st.success(":white_check_mark: Extracted dar data!")
+                    st.success("✅ Extracted dar data!")
                     st.session_state.df = pd.DataFrame(table_data)
+                    st.rerun()  # Forces Streamlit to reload session state instantly
                 else:
                     st.warning("Walang na-detect na data. Try mo mas malinaw na picture.")
             except Exception as e:
                 st.error(f"Error: {str(e)}")
 
-# Show editor + buttons kung may data na
+# Show editor + buttons if data is extracted
 if st.session_state.df is not None:
-    st.subheader(":clipboard: Verify Data - Edit mo kung may mali")
+    st.subheader("📋 Verify Data - Edit mo kung may mali")
     edited_df = st.data_editor(
         st.session_state.df,
         num_rows="dynamic",
@@ -102,14 +105,14 @@ if st.session_state.df is not None:
     with col1:
         csv = st.session_state.df.to_csv(index=False).encode('utf-8')
         st.download_button(
-            ":inbox_tray: Download CSV",
+            "📥 Download CSV",
             csv,
             "dar_data.csv",
             "text/csv",
             use_container_width=True
         )
     with col2:
-        if st.button(":rocket: Sync All to Google Sheets", use_container_width=True):
+        if st.button("🚀 Sync All to Google Sheets", use_container_width=True):
             try:
                 with st.spinner('Syncing to Google Sheets...'):
                     client = get_gsheet_client()
@@ -119,12 +122,12 @@ if st.session_state.df is not None:
                     if len(sheet.get_all_values()) == 0:
                         sheet.append_row(st.session_state.df.columns.tolist())
                     sheet.append_rows(rows, value_input_option='USER_ENTERED')
-                    st.success(f":white_check_mark: {len(rows)} rows synced sa Google Sheets!")
+                    st.success(f"✅ {len(rows)} rows synced sa Google Sheets!")
                     st.balloons()
             except Exception as e:
                 st.error(f"Sync failed: {str(e)}")
                 st.code(f"Error details: {repr(e)}")
                 st.info("Check: 1. Naka-share ba sheet sa service account? 2. Tama ba secrets?")
 else:
-    st.info(":point_up_2: Upload a dar photo to start")
-    st.warning(":warning: REVIEW and EDIT kung may MALI")
+    st.info("👆 Upload a dar photo to start")
+    st.warning("⚠️ REVIEW and EDIT kung may MALI")
